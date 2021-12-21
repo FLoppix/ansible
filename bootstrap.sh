@@ -9,5 +9,7 @@ xcode-select --install
 ## Install ansible
 brew install ansible
 
+ansible-galaxy collection install community.general
+
 ## pull ansible
 # sudo ansible-pull -U https://github.com/FLoppix/ansible.git

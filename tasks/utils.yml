@@ -1,5 +1,5 @@
-- name: "Install brave browser"
+- name: "Install util packages"
   community.general.homebrew:
-    name: ["brave-browser"]
+    name: ["wget"]
     state: present
     update_homebrew: yes

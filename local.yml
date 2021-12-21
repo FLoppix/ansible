@@ -1,3 +1,4 @@
 - hosts: localhost
   tasks:
     - include: tasks/brave.yml
+    - include: tasks/utils.yml
