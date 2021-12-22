@@ -1,0 +1,5 @@
+- name: "Install docker"
+  community.general.homebrew:
+    name: ["docker"]
+    state: present
+    update_homebrew: yes
