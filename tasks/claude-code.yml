@@ -1,0 +1,79 @@
+- name: Check if mise is installed (required dependency)
+  command: mise --version
+  register: mise_check
+  changed_when: false
+  failed_when: false
+
+- name: Fail if mise is not installed
+  fail:
+    msg: |
+      mise is required before installing Claude Code.
+      Please run the mise task first:
+      ansible-playbook playbook.yml --tags mise
+  when: mise_check.rc != 0
+
+- name: Ensure Node.js is installed via mise
+  shell: |
+    eval "$(~/.local/bin/mise activate bash)"
+    mise use --global node@lts
+    mise install node
+  args:
+    executable: /bin/bash
+
+- name: Check if Claude Code is already installed
+  shell: |
+    eval "$(~/.local/bin/mise activate bash)"
+    claude --version
+  args:
+    executable: /bin/bash
+  register: claude_code_check
+  changed_when: false
+  failed_when: false
+
+- name: Install Claude Code globally via npm
+  shell: |
+    eval "$(~/.local/bin/mise activate bash)"
+    npm install -g @anthropic-ai/claude-code
+  args:
+    executable: /bin/bash
+  when: claude_code_check.rc != 0
+
+- name: Verify Claude Code installation
+  shell: |
+    eval "$(~/.local/bin/mise activate bash)"
+    claude --version
+  args:
+    executable: /bin/bash
+  register: claude_version
+  changed_when: false
+
+- name: Display installed Claude Code version
+  debug:
+    msg: "Claude Code {{ claude_version.stdout }} installed successfully"
+
+- name: Create .claude directory for project commands (optional)
+  file:
+    path: "{{ ansible_env.HOME }}/.claude/commands"
+    state: directory
+    mode: "0755"
+
+- name: Display Claude Code setup instructions
+  debug:
+    msg: |
+      Claude Code installed successfully!
+
+      IMPORTANT - First Time Setup:
+      1. Navigate to any project directory: cd ~/your-project
+      2. Run: claude
+      3. You'll be prompted to authenticate via OAuth
+      4. Choose authentication method:
+         - Claude App (Pro/Max subscription)
+         - Anthropic Console (requires billing setup at console.anthropic.com)
+
+      Common Commands:
+      - claude                    # Start Claude Code in current project
+      - claude doctor             # Verify installation
+      - /help                     # Show available commands (inside Claude Code)
+      - /bug                      # Report issues
+
+      Learn more: https://docs.claude.com/en/docs/claude-code/

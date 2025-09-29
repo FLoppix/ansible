@@ -9,5 +9,6 @@
     - include: tasks/pnpm.yml
     - include: tasks/bun.yml
     - include: tasks/mise.yml
+    - include: tasks/claude-code.yml
     - include: tasks/cursor.yml
     - include: tasks/utils.yml
