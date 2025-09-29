@@ -1,0 +1,112 @@
+- name: Ensure Zsh is installed (dependency)
+  include_tasks: zsh.yml
+  when: ansible_facts['packages'] is not defined or 'zsh' not in ansible_facts['packages']
+
+- name: Check if mise is already installed
+  command: mise --version
+  register: mise_check
+  changed_when: false
+  failed_when: false
+
+- name: Install mise via Homebrew (recommended for macOS)
+  homebrew:
+    name: mise
+    state: present
+  when: mise_check.rc != 0
+
+- name: Alternative - Install mise via official installer (if Homebrew failed)
+  shell: |
+    curl https://mise.run | sh
+  args:
+    executable: /bin/bash
+  when: mise_check.rc != 0
+  failed_when: false
+  tags: mise_standalone
+
+- name: Activate mise in .zshrc
+  blockinfile:
+    path: "{{ ansible_env.HOME }}/.zshrc"
+    block: |
+      # mise - polyglot tool version manager
+      eval "$(~/.local/bin/mise activate zsh)"
+    marker: "# {mark} ANSIBLE MANAGED BLOCK - MISE"
+    create: yes
+
+- name: Set up mise completions for zsh
+  blockinfile:
+    path: "{{ ansible_env.HOME }}/.zshrc"
+    block: |
+      # mise completions
+      eval "$(~/.local/bin/mise completion zsh)"
+    marker: "# {mark} ANSIBLE MANAGED BLOCK - MISE COMPLETIONS"
+    create: yes
+
+- name: Create mise config directory
+  file:
+    path: "{{ ansible_env.HOME }}/.config/mise"
+    state: directory
+    mode: "0755"
+
+- name: Create default mise config (optional)
+  copy:
+    dest: "{{ ansible_env.HOME }}/.config/mise/config.toml"
+    content: |
+      # mise configuration
+      # See: https://mise.jdx.dev/configuration.html
+
+      [settings]
+      # Automatically install missing tools
+      # auto_install = true
+
+      # Use legacy version files (.nvmrc, .node-version, etc)
+      legacy_version_file = true
+
+      # Always keep downloaded tools
+      always_keep_download = false
+
+      # Disable telemetry
+      disable_telemetry = true
+
+      [tools]
+      # Global tool versions
+      # node = "22"
+      # python = "3.12"
+    mode: "0644"
+    force: no
+
+- name: Set GitHub token for mise (if available)
+  blockinfile:
+    path: "{{ ansible_env.HOME }}/.zshrc"
+    block: |
+      # GitHub token for mise (prevents rate limiting)
+      # Get token from: https://github.com/settings/tokens/new?description=MISE_GITHUB_TOKEN
+      # export MISE_GITHUB_TOKEN="your_token_here"
+    marker: "# {mark} ANSIBLE MANAGED BLOCK - MISE GITHUB TOKEN"
+    create: yes
+  when: lookup('env', 'MISE_GITHUB_TOKEN') | length == 0
+
+- name: Verify mise installation
+  shell: |
+    eval "$(~/.local/bin/mise activate zsh)"
+    mise --version
+  args:
+    executable: /bin/zsh
+  register: mise_version
+  changed_when: false
+
+- name: Display installed mise version
+  debug:
+    msg: "mise {{ mise_version.stdout }} installed successfully"
+
+- name: Display mise usage information
+  debug:
+    msg: |
+      mise is installed! Common commands:
+      - mise use --global node@22     # Install and set global Node.js 22
+      - mise use python@3.12          # Install Python 3.12 for current project
+      - mise install                  # Install all tools from config
+      - mise ls                       # List installed tools
+      - mise ls-remote node           # List available Node.js versions
+      - mise exec node@20 -- node -v  # Run command with specific tool version
+      - mise run <task>               # Run a mise task
+      - mise doctor                   # Verify mise installation

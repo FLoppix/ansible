@@ -1,0 +1,73 @@
+- name: Install Zsh via Homebrew
+  homebrew:
+    name: zsh
+    state: present
+
+- name: Get Homebrew Zsh path
+  command: brew --prefix zsh
+  register: brew_zsh_prefix
+  changed_when: false
+
+- name: Set Homebrew Zsh path
+  set_fact:
+    homebrew_zsh_path: "{{ brew_zsh_prefix.stdout }}/bin/zsh"
+
+- name: Check if Homebrew Zsh is in /etc/shells
+  lineinfile:
+    path: /etc/shells
+    line: "{{ homebrew_zsh_path }}"
+    state: present
+  check_mode: yes
+  register: zsh_in_shells
+  changed_when: false
+
+- name: Add Homebrew Zsh to /etc/shells
+  lineinfile:
+    path: /etc/shells
+    line: "{{ homebrew_zsh_path }}"
+    state: present
+  become: yes
+  when: zsh_in_shells is changed
+
+- name: Get current user shell
+  command: dscl . -read /Users/{{ ansible_env.USER }} UserShell
+  register: current_shell
+  changed_when: false
+
+- name: Change default shell to Zsh
+  command: chsh -s {{ homebrew_zsh_path }}
+  when: homebrew_zsh_path not in current_shell.stdout
+  become: yes
+
+- name: Install Oh My Zsh
+  stat:
+    path: "{{ ansible_env.HOME }}/.oh-my-zsh"
+  register: oh_my_zsh_installed
+
+- name: Download and install Oh My Zsh
+  shell: >
+    sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended
+  when: not oh_my_zsh_installed.stat.exists
+
+- name: Create .zshrc if it doesn't exist
+  file:
+    path: "{{ ansible_env.HOME }}/.zshrc"
+    state: touch
+    mode: "0644"
+  changed_when: false
+
+- name: Set Zsh theme to robbyrussell (default)
+  lineinfile:
+    path: "{{ ansible_env.HOME }}/.zshrc"
+    regexp: "^ZSH_THEME="
+    line: 'ZSH_THEME="robbyrussell"'
+    state: present
+
+- name: Verify Zsh installation
+  command: "{{ homebrew_zsh_path }} --version"
+  register: zsh_version
+  changed_when: false
+
+- name: Display installed Zsh version
+  debug:
+    msg: "Zsh {{ zsh_version.stdout }} installed and set as default shell"

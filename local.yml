@@ -1,5 +1,13 @@
 - hosts: localhost
   tasks:
     - include: tasks/docker.yml
-    - include: tasks/brave.yml
+    - include: tasks/zsh.yml
+    - include: tasks/nvm.yml
+    - include: tasks/tmux.yml
+    - include: tasks/ghostty.yml
+    - include: tasks/aerospace.yml
+    - include: tasks/pnpm.yml
+    - include: tasks/bun.yml
+    - include: tasks/mise.yml
+    - include: tasks/cursor.yml
     - include: tasks/utils.yml

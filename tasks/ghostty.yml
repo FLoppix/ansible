@@ -1,0 +1,39 @@
+- name: Install Ghostty via Homebrew cask
+  homebrew_cask:
+    name: ghostty
+    state: present
+
+- name: Verify Ghostty installation
+  command: test -d /Applications/Ghostty.app
+  register: ghostty_installed
+  changed_when: false
+  failed_when: false
+
+- name: Display Ghostty installation status
+  debug:
+    msg: "Ghostty installed successfully at /Applications/Ghostty.app"
+  when: ghostty_installed.rc == 0
+
+- name: Create Ghostty config directory
+  file:
+    path: "{{ ansible_env.HOME }}/.config/ghostty"
+    state: directory
+    mode: "0755"
+
+- name: Create default Ghostty config (optional)
+  copy:
+    dest: "{{ ansible_env.HOME }}/.config/ghostty/config"
+    content: |
+      # Ghostty Configuration
+      # See: https://ghostty.org/docs/config
+
+      # Font configuration
+      font-size = 16
+
+      # Theme
+      theme = catppuccin-frappe
+
+      # Shell integration
+      shell-integration = true
+    mode: "0644"
+    force: no

@@ -1,0 +1,49 @@
+- name: Ensure Zsh is installed (dependency)
+  include_tasks: zsh.yml
+  when: ansible_facts['packages'] is not defined or 'zsh' not in ansible_facts['packages']
+
+- name: Check if NVM is already installed
+  stat:
+    path: "{{ ansible_env.HOME }}/.nvm/nvm.sh"
+  register: nvm_installed
+
+- name: Download and install NVM
+  shell: >
+    curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.3/install.sh | bash
+  args:
+    warn: false
+  when: not nvm_installed.stat.exists
+
+- name: Add NVM to shell profile (.zshrc)
+  blockinfile:
+    path: "{{ ansible_env.HOME }}/.zshrc"
+    block: |
+      export NVM_DIR="$HOME/.nvm"
+      [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+      [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"
+    marker: "# {mark} ANSIBLE MANAGED BLOCK - NVM"
+    create: yes
+
+- name: Install Node.js LTS via NVM
+  shell: |
+    export NVM_DIR="$HOME/.nvm"
+    [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+    nvm install --lts
+    nvm alias default 'lts/*'
+  args:
+    executable: /bin/bash
+    creates: "{{ ansible_env.HOME }}/.nvm/versions/node"
+
+- name: Verify Node installation
+  shell: |
+    export NVM_DIR="$HOME/.nvm"
+    [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+    node --version
+  args:
+    executable: /bin/bash
+  register: node_version
+  changed_when: false
+
+- name: Display installed Node version
+  debug:
+    msg: "Node.js {{ node_version.stdout }} installed successfully"

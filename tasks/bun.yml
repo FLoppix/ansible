@@ -1,0 +1,67 @@
+- name: Ensure Zsh is installed (dependency)
+  include_tasks: zsh.yml
+  when: ansible_facts['packages'] is not defined or 'zsh' not in ansible_facts['packages']
+
+- name: Check if Bun is already installed
+  command: bun --version
+  register: bun_check
+  changed_when: false
+  failed_when: false
+
+- name: Install Bun via Homebrew (recommended for macOS)
+  homebrew:
+    name: bun
+    state: present
+  when: bun_check.rc != 0
+
+- name: Alternative - Install Bun via official installer (if Homebrew failed)
+  shell: |
+    curl -fsSL https://bun.sh/install | bash
+  args:
+    executable: /bin/bash
+  when: bun_check.rc != 0
+  failed_when: false
+  tags: bun_standalone
+
+- name: Add Bun to shell profile (.zshrc)
+  blockinfile:
+    path: "{{ ansible_env.HOME }}/.zshrc"
+    block: |
+      # Bun
+      export BUN_INSTALL="{{ ansible_env.HOME }}/.bun"
+      export PATH="$BUN_INSTALL/bin:$PATH"
+    marker: "# {mark} ANSIBLE MANAGED BLOCK - BUN"
+    create: yes
+
+- name: Add Bun to shell profile (.bash_profile)
+  blockinfile:
+    path: "{{ ansible_env.HOME }}/.bash_profile"
+    block: |
+      # Bun
+      export BUN_INSTALL="{{ ansible_env.HOME }}/.bun"
+      export PATH="$BUN_INSTALL/bin:$PATH"
+    marker: "# {mark} ANSIBLE MANAGED BLOCK - BUN"
+    create: yes
+
+- name: Source Bun completions in .zshrc
+  blockinfile:
+    path: "{{ ansible_env.HOME }}/.zshrc"
+    block: |
+      # Bun completions
+      [ -s "{{ ansible_env.HOME }}/.bun/_bun" ] && source "{{ ansible_env.HOME }}/.bun/_bun"
+    marker: "# {mark} ANSIBLE MANAGED BLOCK - BUN COMPLETIONS"
+    create: yes
+
+- name: Verify Bun installation
+  shell: |
+    export BUN_INSTALL="{{ ansible_env.HOME }}/.bun"
+    export PATH="$BUN_INSTALL/bin:$PATH"
+    bun --version
+  args:
+    executable: /bin/bash
+  register: bun_version
+  changed_when: false
+
+- name: Display installed Bun version
+  debug:
+    msg: "Bun {{ bun_version.stdout }} installed successfully"

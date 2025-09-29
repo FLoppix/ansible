@@ -1,0 +1,55 @@
+---
+# tasks/cursor.yml - with custom settings file
+
+- name: Check if Cursor is already installed
+  stat:
+    path: /Applications/Cursor.app
+  register: cursor_app
+
+- name: Install Cursor via Homebrew cask
+  homebrew_cask:
+    name: cursor
+    state: present
+  when: not cursor_app.stat.exists
+
+- name: Create Cursor settings directory
+  file:
+    path: "{{ ansible_env.HOME }}/Library/Application Support/Cursor/User"
+    state: directory
+    mode: "0755"
+
+- name: Deploy custom Cursor settings
+  copy:
+    src: files/cursor/settings.json
+    dest: "{{ ansible_env.HOME }}/Library/Application Support/Cursor/User/settings.json"
+    mode: "0644"
+    force: yes
+
+- name: Deploy custom Cursor keybindings
+  copy:
+    src: files/cursor/keybindings.json
+    dest: "{{ ansible_env.HOME }}/Library/Application Support/Cursor/User/keybindings.json"
+    mode: "0644"
+    force: yes
+
+- name: Add Cursor CLI to PATH
+  file:
+    src: "/Applications/Cursor.app/Contents/Resources/app/bin/cursor"
+    dest: "/usr/local/bin/cursor"
+    state: link
+  become: yes
+  when: cursor_installed.stat.exists
+  ignore_errors: yes
+
+- name: Install Cursor extensions
+  command: "cursor --install-extension {{ item }}"
+  loop:
+    - dbaeumer.vscode-eslint
+    - esbenp.prettier-vscode
+    - rust-lang.rust-analyzer
+    - catppuccin.catppuccin-vsc
+    - catppuccin.catppuccin-vsc-icons
+    - golang.go
+    - hashicorp.terraform
+  when: cursor_installed.stat.exists
+  ignore_errors: yes

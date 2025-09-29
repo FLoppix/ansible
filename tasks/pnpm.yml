@@ -1,0 +1,59 @@
+- name: Ensure Zsh is installed (dependency)
+  include_tasks: zsh.yml
+  when: ansible_facts['packages'] is not defined or 'zsh' not in ansible_facts['packages']
+
+- name: Check if pnpm is already installed
+  command: pnpm --version
+  register: pnpm_check
+  changed_when: false
+  failed_when: false
+
+- name: Install pnpm via Homebrew (recommended for macOS)
+  homebrew:
+    name: pnpm
+    state: present
+  when: pnpm_check.rc != 0
+
+- name: Alternative - Install pnpm via standalone script (if Homebrew failed)
+  shell: |
+    curl -fsSL https://get.pnpm.io/install.sh | sh -
+  args:
+    executable: /bin/bash
+  when: pnpm_check.rc != 0
+  failed_when: false
+  tags: pnpm_standalone
+
+- name: Add pnpm to shell profile (.zshrc)
+  blockinfile:
+    path: "{{ ansible_env.HOME }}/.zshrc"
+    block: |
+      # pnpm
+      export PNPM_HOME="{{ ansible_env.HOME }}/Library/pnpm"
+      case ":$PATH:" in
+        *":$PNPM_HOME:"*) ;;
+        *) export PATH="$PNPM_HOME:$PATH" ;;
+      esac
+      # pnpm end
+    marker: "# {mark} ANSIBLE MANAGED BLOCK - PNPM"
+    create: yes
+
+- name: Create pnpm alias 'pn' in .zshrc (optional)
+  lineinfile:
+    path: "{{ ansible_env.HOME }}/.zshrc"
+    line: "alias pn=pnpm"
+    state: present
+  tags: pnpm_alias
+
+- name: Verify pnpm installation
+  shell: |
+    export PNPM_HOME="{{ ansible_env.HOME }}/Library/pnpm"
+    export PATH="$PNPM_HOME:$PATH"
+    pnpm --version
+  args:
+    executable: /bin/bash
+  register: pnpm_version
+  changed_when: false
+
+- name: Display installed pnpm version
+  debug:
+    msg: "pnpm {{ pnpm_version.stdout }} installed successfully"
