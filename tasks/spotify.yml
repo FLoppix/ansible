@@ -1,0 +1,70 @@
+- name: Check if Spotify is already installed
+  stat:
+    path: /Applications/Spotify.app
+  register: spotify_app
+
+- name: Install Spotify via Homebrew cask
+  homebrew_cask:
+    name: spotify
+    state: present
+  when: not spotify_app.stat.exists
+
+- name: Install spotify-tui (Terminal UI for Spotify)
+  homebrew:
+    name: spotify-tui
+    state: present
+  tags: spotify_cli
+
+- name: Install spotifyd (Spotify daemon)
+  homebrew:
+    name: spotifyd
+    state: present
+  tags: spotify_daemon
+
+- name: Create spotifyd config directory
+  file:
+    path: "{{ ansible_env.HOME }}/.config/spotifyd"
+    state: directory
+    mode: "0755"
+  tags: spotify_daemon
+
+- name: Create spotifyd configuration
+  copy:
+    dest: "{{ ansible_env.HOME }}/.config/spotifyd/spotifyd.conf"
+    content: |
+      [global]
+      username = "your_username"
+      # password = "your_password"  # or use password_cmd
+      # password_cmd = "security find-generic-password -s spotifyd -w"
+      backend = "portaudio"
+      device_name = "spotifyd"
+      bitrate = 320
+      cache_path = "{{ ansible_env.HOME }}/.cache/spotifyd"
+      volume_normalisation = true
+      normalisation_pregain = -10
+      device_type = "computer"
+    mode: "0600"
+    force: no
+  tags: spotify_daemon
+
+- name: Verify Spotify installation
+  stat:
+    path: /Applications/Spotify.app
+  register: spotify_installed
+
+- name: Display Spotify installation status
+  debug:
+    msg: |
+      Spotify installed successfully!
+
+      Desktop App:
+      - Launch: open -a Spotify
+
+      Terminal UI (spotify-tui):
+      - Run: spt
+      - First time: spt will prompt for Spotify credentials
+
+      Spotifyd Daemon:
+      - Edit config: ~/.config/spotifyd/spotifyd.conf
+      - Start daemon: brew services start spotifyd
+      - Use with spotify-tui or Spotify Connect

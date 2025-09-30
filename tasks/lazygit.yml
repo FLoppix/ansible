@@ -1,0 +1,68 @@
+- name: Ensure Zsh is installed (dependency)
+  include_tasks: zsh.yml
+  when: ansible_facts['packages'] is not defined or 'zsh' not in ansible_facts['packages']
+
+- name: Install lazygit via Homebrew
+  homebrew:
+    name: lazygit
+    state: present
+
+- name: Install git-delta for better diffs
+  homebrew:
+    name: git-delta
+    state: present
+
+- name: Create lazygit config directory
+  file:
+    path: "{{ ansible_env.HOME }}/.config/lazygit"
+    state: directory
+    mode: "0755"
+
+- name: Configure lazygit with delta
+  copy:
+    dest: "{{ ansible_env.HOME }}/.config/lazygit/config.yml"
+    content: |
+      gui:
+        theme:
+          lightTheme: false
+        showIcons: true
+        showFileTree: true
+        mouseEvents: true
+
+      git:
+        paging:
+          colorArg: always
+          pager: delta --dark --paging=never --line-numbers
+        autoFetch: true
+        autoRefresh: true
+
+      confirmOnQuit: false
+    mode: "0644"
+    force: no
+
+- name: Configure git to use delta
+  shell: |
+    git config --global core.pager "delta"
+    git config --global interactive.diffFilter "delta --color-only"
+    git config --global delta.navigate true
+    git config --global delta.light false
+    git config --global delta.side-by-side true
+    git config --global merge.conflictstyle diff3
+    git config --global diff.colorMoved default
+  args:
+    executable: /bin/bash
+
+- name: Add lazygit alias
+  lineinfile:
+    path: "{{ ansible_env.HOME }}/.zshrc"
+    line: "alias lg='lazygit'"
+    state: present
+
+- name: Verify installation
+  command: lazygit --version
+  register: lazygit_version
+  changed_when: false
+
+- name: Display version
+  debug:
+    msg: "{{ lazygit_version.stdout }} installed successfully with delta integration"
