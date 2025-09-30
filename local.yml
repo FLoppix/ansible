@@ -1,14 +1,14 @@
 - hosts: localhost
   tasks:
-    - include: tasks/docker.yml
-    - include: tasks/zsh.yml
-    - include: tasks/nvm.yml
-    - include: tasks/tmux.yml
-    - include: tasks/ghostty.yml
-    - include: tasks/aerospace.yml
-    - include: tasks/pnpm.yml
-    - include: tasks/bun.yml
-    - include: tasks/mise.yml
-    - include: tasks/claude-code.yml
-    - include: tasks/cursor.yml
-    - include: tasks/utils.yml
+    - include_tasks: tasks/docker.yml
+    - include_tasks: tasks/zsh.yml
+    - include_tasks: tasks/nvm.yml
+    - include_tasks: tasks/tmux.yml
+    - include_tasks: tasks/ghostty.yml
+    - include_tasks: tasks/aerospace.yml
+    - include_tasks: tasks/pnpm.yml
+    - include_tasks: tasks/bun.yml
+    - include_tasks: tasks/mise.yml
+    - include_tasks: tasks/claude-code.yml
+    - include_tasks: tasks/cursor.yml
+    - include_tasks: tasks/utils.yml

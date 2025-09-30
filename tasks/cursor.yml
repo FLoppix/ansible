@@ -1,6 +1,5 @@
 ---
 # tasks/cursor.yml - with custom settings file
-
 - name: Check if Cursor is already installed
   stat:
     path: /Applications/Cursor.app
@@ -38,7 +37,7 @@
     dest: "/usr/local/bin/cursor"
     state: link
   become: yes
-  when: cursor_installed.stat.exists
+  when: cursor_app.stat.exists
   ignore_errors: yes
 
 - name: Install Cursor extensions
@@ -51,5 +50,5 @@
     - catppuccin.catppuccin-vsc-icons
     - golang.go
     - hashicorp.terraform
-  when: cursor_installed.stat.exists
+  when: cursor_app.stat.exists
   ignore_errors: yes

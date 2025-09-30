@@ -1,7 +1,13 @@
+- name: Check if Ghostty is already installed
+  stat:
+    path: /Applications/Ghostty.app
+  register: ghostty_app
+
 - name: Install Ghostty via Homebrew cask
   homebrew_cask:
     name: ghostty
     state: present
+  when: not ghostty_app.stat.exists
 
 - name: Verify Ghostty installation
   command: test -d /Applications/Ghostty.app
@@ -26,13 +32,10 @@
     content: |
       # Ghostty Configuration
       # See: https://ghostty.org/docs/config
-
       # Font configuration
       font-size = 16
-
       # Theme
       theme = catppuccin-frappe
-
       # Shell integration
       shell-integration = true
     mode: "0644"
