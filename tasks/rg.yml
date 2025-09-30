@@ -1,0 +1,143 @@
+---
+# tasks/ripgrep.yml or part of your playbook
+
+- name: Check if ripgrep is already installed
+  command: rg --version
+  register: ripgrep_check
+  changed_when: false
+  failed_when: false
+
+- name: Install ripgrep via Homebrew
+  homebrew:
+    name: ripgrep
+    state: present
+  when: ripgrep_check.rc != 0
+
+- name: Create ripgrep config directory
+  file:
+    path: "{{ ansible_env.HOME }}/.config/ripgrep"
+    state: directory
+    mode: "0755"
+
+- name: Create ripgrep configuration file
+  copy:
+    dest: "{{ ansible_env.HOME }}/.config/ripgrep/ripgreprc"
+    content: |
+      # ripgrep configuration
+      # See: https://github.com/BurntSushi/ripgrep/blob/master/GUIDE.md
+
+      # Always use smart case (case-insensitive unless uppercase is used)
+      --smart-case
+
+      # Always show line numbers
+      --line-number
+
+      # Always show colors
+      --colors=line:fg:yellow
+      --colors=line:style:bold
+      --colors=path:fg:green
+      --colors=path:style:bold
+      --colors=match:fg:black
+      --colors=match:bg:yellow
+      --colors=match:style:nobold
+
+      # Follow symlinks
+      --follow
+
+      # Maximum number of columns to show
+      --max-columns=150
+
+      # Maximum number of columns to preview when using --max-columns
+      --max-columns-preview
+
+      # Use glob patterns for file matching
+      --glob=!.git/*
+      --glob=!node_modules/*
+      --glob=!.next/*
+      --glob=!dist/*
+      --glob=!build/*
+      --glob=!*.min.js
+      --glob=!*.min.css
+      --glob=!package-lock.json
+      --glob=!yarn.lock
+      --glob=!pnpm-lock.yaml
+
+      # Include hidden files (dotfiles)
+      --hidden
+    mode: "0644"
+    force: no
+
+- name: Add ripgrep config to .zshrc
+  blockinfile:
+    path: "{{ ansible_env.HOME }}/.zshrc"
+    block: |
+      # ripgrep configuration
+      export RIPGREP_CONFIG_PATH="{{ ansible_env.HOME }}/.config/ripgrep/ripgreprc"
+    marker: "# {mark} ANSIBLE MANAGED BLOCK - RIPGREP"
+    create: yes
+
+- name: Add ripgrep config to .bash_profile
+  blockinfile:
+    path: "{{ ansible_env.HOME }}/.bash_profile"
+    block: |
+      # ripgrep configuration
+      export RIPGREP_CONFIG_PATH="{{ ansible_env.HOME }}/.config/ripgrep/ripgreprc"
+    marker: "# {mark} ANSIBLE MANAGED BLOCK - RIPGREP"
+    create: yes
+
+- name: Add ripgrep aliases to .zshrc (optional)
+  blockinfile:
+    path: "{{ ansible_env.HOME }}/.zshrc"
+    block: |
+      # ripgrep aliases
+      alias rgi='rg --no-ignore'  # Search including ignored files
+      alias rgf='rg --files | rg' # Search in filenames
+      alias rgl='rg --files-with-matches' # Only show matching files
+      alias rgc='rg --count'      # Count matches per file
+    marker: "# {mark} ANSIBLE MANAGED BLOCK - RIPGREP ALIASES"
+    create: yes
+  tags: ripgrep_aliases
+
+- name: Verify ripgrep installation
+  command: rg --version
+  register: ripgrep_version
+  changed_when: false
+
+- name: Display installed ripgrep version
+  debug:
+    msg: "{{ ripgrep_version.stdout }} installed successfully"
+
+- name: Display ripgrep usage information
+  debug:
+    msg: |
+      ripgrep installed successfully!
+
+      ripgrep (rg) is an extremely fast line-oriented search tool.
+      It recursively searches directories for a regex pattern.
+
+      Basic usage:
+      - rg <pattern>              # Search for pattern in current directory
+      - rg <pattern> <path>       # Search in specific path
+      - rg -i <pattern>           # Case-insensitive search
+      - rg -w <pattern>           # Match whole words only
+      - rg -A 3 <pattern>         # Show 3 lines after match
+      - rg -B 3 <pattern>         # Show 3 lines before match
+      - rg -C 3 <pattern>         # Show 3 lines of context
+
+      Advanced usage:
+      - rg -t js <pattern>        # Search only JavaScript files
+      - rg -T js <pattern>        # Exclude JavaScript files
+      - rg -l <pattern>           # Only show matching filenames
+      - rg -c <pattern>           # Count matches per file
+      - rg --files                # List all files that would be searched
+      - rg --type-list            # Show all supported file types
+
+      With aliases (if enabled):
+      - rgi <pattern>             # Search including ignored files
+      - rgf <pattern>             # Search in filenames
+      - rgl <pattern>             # Only show matching files
+      - rgc <pattern>             # Count matches per file
+
+      Config: ~/.config/ripgrep/ripgreprc
+
+      Learn more: https://github.com/BurntSushi/ripgrep
