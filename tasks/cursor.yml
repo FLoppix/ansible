@@ -50,5 +50,9 @@
     - catppuccin.catppuccin-vsc-icons
     - golang.go
     - hashicorp.terraform
+    - vscodevim.vim
+    - yoavbls.pretty-ts-errors
+    - pmndrs.pmndrs
+    - pkief.material-icon-theme
   when: cursor_app.stat.exists
   ignore_errors: yes

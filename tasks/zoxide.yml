@@ -1,0 +1,51 @@
+- name: Ensure Zsh is installed (dependency)
+  include_tasks: zsh.yml
+  when: ansible_facts['packages'] is not defined or 'zsh' not in ansible_facts['packages']
+
+- name: Install zoxide via Homebrew
+  homebrew:
+    name: zoxide
+    state: present
+
+- name: Install fzf for interactive selection
+  homebrew:
+    name: fzf
+    state: present
+
+- name: Configure zoxide with custom settings
+  blockinfile:
+    path: "{{ ansible_env.HOME }}/.zshrc"
+    block: |
+      # zoxide configuration
+      export _ZO_DATA_DIR="{{ ansible_env.HOME }}/.local/share/zoxide"
+      export _ZO_ECHO=1  # Print the matched directory before navigating
+      export _ZO_EXCLUDE_DIRS="{{ ansible_env.HOME }}/.cache:{{ ansible_env.HOME }}/.local/share"
+      export _ZO_FZF_OPTS="--height 40% --layout=reverse --border --preview 'ls -la {2..}'"
+      export _ZO_MAXAGE=10000  # Remove directories older than this
+      export _ZO_RESOLVE_SYMLINKS=1  # Resolve symlinks
+
+      # Initialize zoxide
+      eval "$(zoxide init zsh --cmd cd)"  # Use 'cd' instead of 'z'
+    marker: "# {mark} ANSIBLE MANAGED BLOCK - ZOXIDE"
+    create: yes
+
+- name: Add helper aliases
+  blockinfile:
+    path: "{{ ansible_env.HOME }}/.zshrc"
+    block: |
+      # zoxide helpers
+      alias cdi='__zoxide_zi'  # Interactive cd
+      alias cdf='cd $(find . -type d | fzf)'  # Find and cd
+      alias zq='zoxide query'  # Query database
+      alias zr='zoxide remove'  # Remove from database
+    marker: "# {mark} ANSIBLE MANAGED BLOCK - ZOXIDE HELPERS"
+    create: yes
+
+- name: Verify installation
+  command: zoxide --version
+  register: zoxide_version
+  changed_when: false
+
+- name: Display version
+  debug:
+    msg: "{{ zoxide_version.stdout }} installed with advanced configuration"
